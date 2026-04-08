@@ -271,45 +271,47 @@ public class Main {
         switch (charClass){
             case UNKNOWN:
                 lookup(nextChar);
-                if (nextToken != UNDERSCORE){
+                if (nextToken == UNDERSCORE || nextToken == DOT){
+                    getNextChar();
+                }else{
                     getNextChar();
                     break;
                 }
-                getNextChar();
             case(LETTER): // Case of Indentifier
-                addCurrentChar();
-                getNextChar();
-                while (charClass == LETTER || charClass == DIGIT || (charClass == UNKNOWN && nextChar=='_')){
-                    if (charClass == UNKNOWN){
-                        lookup(nextChar);
-                        if (nextToken == UNDERSCORE){
-                            getNextChar();
-                            continue;
-                        } else{
-                            //THROW ERROR
-                        }
-                    }
+                if (charClass == EOF){
+                    break;
+                } else if (nextToken == DOT){
+                    //MOVE DOWN TO DIGIT
+                }else {
                     addCurrentChar();
                     getNextChar();
+                    while ((charClass == LETTER || charClass == DIGIT || nextChar=='_') && charClass!=EOF){
+                        if (nextChar=='_'){
+                            lookup(nextChar);
+                            if (nextToken == UNDERSCORE){
+                                getNextChar();
+                                continue;
+                            } else{
+                                //THROW ERROR
+                            }
+                        }
+                        addCurrentChar();
+                        getNextChar();
+                    }
+                    if (checkReserved(nextLexeme)){
+                        setReservedToken();
+                    } else {nextToken = IDENT;}
+                    break;   
                 }
-                if (checkReserved(nextLexeme)){
-                    setReservedToken();
-                } else {nextToken = IDENT;}
-                break;
             case DIGIT: // Case of Integer Literal (all Digit)
-                boolean dot = false;
                 addCurrentChar();
                 getNextChar();
-                while (charClass == DIGIT || (charClass == UNKNOWN && nextChar=='.')){
+                while ((charClass == DIGIT || nextChar=='.')&& charClass!=EOF){
                     //System.out.println(nextChar);
-                    if (charClass == UNKNOWN){
+                    if (nextChar=='.'){
                         lookup(nextChar);
                         if (nextToken == DOT){
-                            if (dot == true){
-                                //THROW ERROR MULTIPLE DOTS
-                            }
                             getNextChar();
-                            dot = true;
                             continue;
                         } else {
                             //THROW ERROR INVALID UNKNOWN
@@ -329,10 +331,11 @@ public class Main {
                     nextToken = INT_LIT;
                 }
                 break;
-            case EOF:
-                nextToken = EOF;
-                nextLexeme = "EOF";
-                break;
+                case EOF:
+                    nextToken = EOF;
+                    nextLexeme = "EOF";
+                    break;
+
         }
         System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
         return nextToken;
@@ -340,11 +343,11 @@ public class Main {
 
     public static void main(String[] args){
         //[File Name].txt
-        program = parseFile("input1.txt");
-        //program = "__19191_";
+        //program = parseFile("input1.txt");
+        program = "100.1.100111";
         System.out.println(program);
         System.out.printf("Line %d\n",lineNumber);
-        if (program.isEmpty()){
+        if (program.trim().isEmpty()){
             System.out.println("No Code");
         } else{
             getNextChar();
