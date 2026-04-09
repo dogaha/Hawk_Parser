@@ -32,9 +32,10 @@ public class Main {
     //Symbol Table
     static HashMap<String, String> SYMBOL_TABLE = new HashMap<>();
 
-    // Character Classes
+    // Classes
     static final int LETTER = 0;
     static final int DIGIT = 1;
+    static final int NUMBER = 2;
     static final int UNKNOWN = 99;
 
     // Tokens Code
@@ -43,7 +44,7 @@ public class Main {
     static final int DOUBLE_LIT = 12;
     static final int IDENT = 13;
     static final int COLON = 14;
-    static final int SEMI = 15;
+    static final int SEMICOLON = 15;
     static final int COMMA = 16;
     static final int DOT = 17;
     static final int UNDERSCORE = 18;
@@ -153,7 +154,7 @@ public class Main {
                 break;
             case ';':
                 addCurrentChar();
-                nextToken = SEMI;
+                nextToken = SEMICOLON;
                 break;
             case ',':
                 addCurrentChar();
@@ -217,6 +218,7 @@ public class Main {
         return false;
     }
 
+    //Set TOKEN
     public static void setReservedToken(){
         switch (nextLexeme) {
             case "program": 
@@ -262,6 +264,126 @@ public class Main {
                 nextToken = RESERVED_CALL;
                 break;
         }
+    }
+
+    // Throw Error
+    public static void throwError(int expectedToken){
+        String errorMessage = "ERROR: LINE " + lineNumber + " : Expected ";
+        switch (expectedToken){
+            case INT_LIT:
+                errorMessage += "integer literal";
+                break;
+            case FLOAT_LIT:
+                errorMessage += "float literal";
+                break;
+            case DOUBLE_LIT:
+                errorMessage += "double literal";
+                break;
+            case NUMBER:
+                errorMessage += "'int', 'float', or 'double'";
+                break;
+            case IDENT:
+                errorMessage += "identifier";
+                break;
+            case COLON:
+                errorMessage += "':'";
+                break;
+            case SEMICOLON:
+                errorMessage += "';'";
+                break;
+            case COMMA:
+                errorMessage += "','";
+                break;
+            case DOT:
+                errorMessage += "'.'";
+                break;
+            case UNDERSCORE:
+                errorMessage += "'_'";
+                break;
+            case ASSIGN_OP:
+                errorMessage += "':='";
+                break;
+            case ADD_OP:
+                errorMessage += "'+'";
+                break;
+            case SUB_OP:
+                errorMessage += "'-'";
+                break;
+            case MULT_OP:
+                errorMessage += "'*'";
+                break;
+            case DIV_OP:
+                errorMessage += "'/'";
+                break;
+            case LEFT_PAREN:
+                errorMessage += "'('";
+                break;
+            case RIGHT_PAREN:
+                errorMessage += "')'";
+                break;
+            case LESS_THAN:
+                errorMessage += "'<'";
+                break;
+            case GREATER_THAN:
+                errorMessage += "'>'";
+                break;
+            case EQUALS:
+                errorMessage += "'='";
+                break;
+            case NOT_EQUAL:
+                errorMessage += "'<>'";
+                break;
+            case RESERVED_PROGRAM:
+                errorMessage += "'program'";
+                break;
+            case RESERVED_BEGIN:
+                errorMessage += "'begin'";
+                break;
+            case RESERVED_END:
+                errorMessage += "'end'";
+                break;
+            case RESERVED_IF:
+                errorMessage += "'if'";
+                break;
+            case RESERVED_THEN:
+                errorMessage += "'then'";
+                break;
+            case RESERVED_ELSE:
+                errorMessage += "'else'";
+                break;
+            case RESERVED_INPUT:
+                errorMessage += "'input'";
+                break;
+            case RESERVED_OUTPUT:
+                errorMessage += "'output'";
+                break;
+            case RESERVED_WHILE:
+                errorMessage += "'while'";
+                break;
+            case RESERVED_LOOP:
+                errorMessage += "'loop'";
+                break;
+            case RESERVED_INT:
+                errorMessage += "'int'";
+                break;
+            case RESERVED_FLOAT:
+                errorMessage += "'float'";
+                break;
+            case RESERVED_DOUBLE:
+                errorMessage += "'double'";
+                break;
+            case RESERVED_CALL:
+                errorMessage += "'call'";
+                break;
+            case EOF:
+                errorMessage = "Unexpected end of file";
+                break;
+            default:
+                errorMessage = "Unknown token";
+                break;
+        }
+        errorMessage += " Recieved "+nextLexeme;
+        throw new RuntimeException(errorMessage);
     }
 
     //Lex
@@ -341,19 +463,87 @@ public class Main {
         return nextToken;
     }
 
+    //Validate
+    public static void validateToken(int... expectedTokens){
+        
+        for (int expectedToken : expectedTokens){
+            if (nextToken == expectedToken){
+                lex();
+                return;
+            }
+        }
+        if (expectedTokens[0] == RESERVED_INT){
+            throwError(NUMBER);
+        }
+        throwError(expectedTokens[0]);
+    }
+
+     public static void validateToken(int expectedToken){
+        if (nextToken == expectedToken){
+                lex();
+        } else {
+            throwError(expectedToken);
+        }
+    }
+
+    // Functions
+    public static void PROGRAM(){
+        validateToken(RESERVED_PROGRAM);
+
+        DECL_SEC();
+
+        validateToken(RESERVED_BEGIN);
+
+        // STATEMENT SECTION
+        validateToken(RESERVED_END);
+
+        validateToken(SEMICOLON);
+    }
+
+    public static void DECL_SEC(){
+        if (nextToken == RESERVED_BEGIN){return;}
+        ID_LIST();
+        validateToken(COLON);
+        validateToken(RESERVED_INT, RESERVED_FLOAT, RESERVED_DOUBLE);
+        validateToken(SEMICOLON);
+    }
+
+    public static void ID_LIST(){
+        // ID, ID_LIST
+        validateToken(IDENT);
+        while (nextToken != COLON){
+            validateToken(COMMA);
+            validateToken(IDENT);
+        }
+    }
+
     public static void main(String[] args){
         //[File Name].txt
-        //program = parseFile("input1.txt");
-        program = "100.1.100111";
+        program = parseFile("input1.txt");
+        
+        //program = "PISS_MAN_07";
         System.out.println(program);
         System.out.printf("Line %d\n",lineNumber);
+
+        // if (program.trim().isEmpty()){
+        //     System.out.println("No Code");
+        // } else{
+        //     getNextChar();
+        //     do{
+        //         lex();
+        //     } while (nextToken != EOF);
+        // }
+
         if (program.trim().isEmpty()){
             System.out.println("No Code");
         } else{
             getNextChar();
-            do{
-                lex();
-            } while (nextToken != EOF);
+            lex();
+            try{
+                PROGRAM();
+            } catch (RuntimeException e) {
+                System.err.println(e.getMessage());
+            }
         }
     }
 }
