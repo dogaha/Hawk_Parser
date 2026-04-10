@@ -37,7 +37,6 @@ public class Main {
     static final int LETTER = 0;
     static final int DIGIT = 1;
     static final int NUMBER = 2;
-    static final int WHITESPACE = 98;
     static final int UNKNOWN = 99;
 
     // Tokens Code
@@ -106,9 +105,6 @@ public class Main {
                 charClass = LETTER;
             else if (Character.isDigit(nextChar))
                 charClass = DIGIT;
-            else if(Character.isWhitespace(nextChar)){
-                charClass = WHITESPACE;
-            }
             else
                 charClass = UNKNOWN;
         } else {
@@ -192,38 +188,14 @@ public class Main {
                 nextToken = DOT;
                 break;
             default:
+                throwError("CHAR");
                 addCurrentChar();
                 nextToken = EOF;
                 break;
         }
     }
 
-    // Put the Program into a single line
-    public static String parseFile(String file){
-        String code = "";
-        try {
-            Scanner scanner = new Scanner(new File("Input_Files/"+file));
-            while (scanner.hasNextLine()){
-                code += scanner.nextLine() + " \n";
-            }
-            scanner.close();
-        } catch (Exception e) {
-            System.out.println("File not found: "+e.getMessage());
-        }
-        return code;
-    }
-    
-    //validate if lexeme is not reserved words
-    public static Boolean checkReserved(String lexeme){
-        for (String s : RESERVED_WORDS ){
-            if (lexeme!=null && lexeme.equals(s)){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    //Set TOKEN
+    //Set Reserved Work Token
     public static void setReservedToken(){
         switch (nextLexeme) {
             case "program": 
@@ -270,6 +242,130 @@ public class Main {
                 break;
         }
     }
+
+    // Put the Program into a single line
+    public static String parseFile(String file){
+        String code = "";
+        try {
+            Scanner scanner = new Scanner(new File("Input_Files/"+file));
+            while (scanner.hasNextLine()){
+                code += scanner.nextLine() + " \n";
+            }
+            scanner.close();
+        } catch (Exception e) {
+            System.out.println("File not found: "+e.getMessage());
+        }
+        return code;
+    }
+    
+    //validate if lexeme is not reserved words
+    public static Boolean checkReserved(String lexeme){
+        for (String s : RESERVED_WORDS ){
+            if (lexeme!=null && lexeme.equals(s)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //Lex
+    public static int lex(){
+        nextLexeme = "";
+        getNonBlank(); //
+        switch (charClass){
+            case UNKNOWN:
+                lookup(nextChar);
+                if (nextToken == UNDERSCORE || nextToken == DOT){
+                    getNextChar();
+                }else{
+                    getNextChar();
+                    break;
+                }
+            case(LETTER): // Case of Indentifier
+                if (charClass == EOF){
+                    break;
+                } else if (nextToken == DOT){
+                    //MOVE DOWN TO DIGIT
+                }else {
+                    addCurrentChar();
+                    getNextChar();
+                    while ((charClass == LETTER || charClass == DIGIT || nextChar=='_') && charClass!=EOF){
+                        if (nextChar=='_'){
+                            lookup(nextChar);
+                            if (nextToken == UNDERSCORE){
+                                getNextChar();
+                                continue;
+                            }
+                        }
+                        addCurrentChar();
+                        getNextChar();
+                    }
+                    if (checkReserved(nextLexeme)){
+                        setReservedToken();
+                    } else {nextToken = IDENT;}
+                    break;   
+                }
+            case DIGIT: // Case of Integer Literal (all Digit)
+                addCurrentChar();
+                getNextChar();
+                while ((charClass == DIGIT || nextChar=='.')&& charClass!=EOF){
+                    //System.out.println(nextChar);
+                    if (nextChar=='.'){
+                        lookup(nextChar);
+                        if (nextToken == DOT){
+                            getNextChar();
+                            continue;
+                        }
+                    }
+                    addCurrentChar();
+                    getNextChar();
+                }
+                int digits = nextLexeme.replaceAll("\\D","").length();
+                if (digits > 10){
+                    throwError("NUMBER_LEN");
+                }
+                if (nextLexeme.contains(".")){
+                    if (nextLexeme.length() - nextLexeme.replace(".","").length()>1){
+                        throwError("NUMBER_DOT");
+                    }
+                    if (digits <= 7){nextToken = FLOAT_LIT;}
+                    else {nextToken = DOUBLE_LIT;}
+                } else {
+                    nextToken = INT_LIT;
+                }
+                break;
+                case EOF:
+                    nextToken = EOF;
+                    nextLexeme = "EOF";
+                    break;
+
+        }
+        return nextToken;
+    }
+
+    //Validate
+    public static void validateToken(int... expectedTokens){
+        
+        for (int expectedToken : expectedTokens){
+            if (nextToken == expectedToken){
+                lex();
+                return;
+            }
+        }
+        if (expectedTokens[0] == RESERVED_INT){
+            throwError(NUMBER);
+        }
+        throwError(expectedTokens[0]);
+    }
+
+     public static void validateToken(int expectedToken){
+        if (nextToken == expectedToken){
+                lex();
+        } else {
+            throwError(expectedToken);
+        }
+    }
+
 
     // Throw Error
     public static void throwError(int expectedToken){
@@ -394,124 +490,16 @@ public class Main {
     public static void throwError(String error){
         String errorMessage = "ERROR: LINE " + lineNumber + " : ";
         switch(error){
-            case "IDENT":
-                errorMessage += "Cannot use character '"+nextChar+"' for Identifier";
-                break;
-            case "NUMBER":
-                errorMessage += "Cannot use character '"+nextChar+"' for Number";
-                break;
             case "NUMBER_LEN":
-                errorMessage += "Numbers cannot excede 10 digits";
+                errorMessage += "Numbers cannot excede 10 digits, " +nextLexeme;
                 break;
             case "NUMBER_DOT":
-                errorMessage += "Numbers cannot excede 10 digits";
+                errorMessage += "Numbers can only have one decimal, "+nextLexeme;
                 break;
+            case "CHAR":
+                errorMessage += ""+nextChar+" is not a useable character";
         }
         throw new RuntimeException(errorMessage);
-    }
-    //Lex
-    public static int lex(){
-        nextLexeme = "";
-        getNonBlank(); //
-        switch (charClass){
-            case UNKNOWN:
-                lookup(nextChar);
-                if (nextToken == UNDERSCORE || nextToken == DOT){
-                    getNextChar();
-                }else{
-                    getNextChar();
-                    break;
-                }
-            case(LETTER): // Case of Indentifier
-                if (charClass == EOF){
-                    break;
-                } else if (nextToken == DOT){
-                    //MOVE DOWN TO DIGIT
-                }else {
-                    addCurrentChar();
-                    getNextChar();
-                    while ((charClass == LETTER || charClass == DIGIT || charClass == UNKNOWN)){
-                        if (charClass==UNKNOWN){
-                            lookup(nextChar);
-                            if (nextToken == UNDERSCORE){
-                                getNextChar();
-                                continue;
-                            } else{
-                                throwError("IDENT");
-                            }
-                        }
-                        addCurrentChar();
-                        getNextChar();
-                    }
-                    if (checkReserved(nextLexeme)){
-                        setReservedToken();
-                    } else {nextToken = IDENT;}
-                    break;   
-                }
-            case DIGIT: // Case of Integer Literal (all Digit)
-                addCurrentChar();
-                getNextChar();
-                while ((charClass == DIGIT || charClass == UNKNOWN)){
-                    //System.out.println(nextChar);
-                    if (charClass == UNKNOWN){
-                        lookup(nextChar);
-                        if (nextToken == DOT){
-                            getNextChar();
-                            continue;
-                        } else {
-                            throwError("NUMBER");
-                        }
-                    }
-                    addCurrentChar();
-                    getNextChar();
-                }
-                int digits = nextLexeme.replaceAll("\\D","").length();
-
-                if (nextLexeme.contains(".")){
-                    if (nextLexeme.length() - nextLexeme.replace(".","").length() > 1) {
-                        throwError("NUMBER_DOT");
-                    }
-                    if (digits <= 7){nextToken = FLOAT_LIT;}
-                    else {nextToken = DOUBLE_LIT;}
-                } else {
-                    nextToken = INT_LIT;
-                }
-
-                if (digits > 10){
-                    //THROW ERROR
-                    throwError("NUMBER_LEN");
-                }
-                break;
-                case EOF:
-                    nextToken = EOF;
-                    nextLexeme = "EOF";
-                    break;
-
-        }
-        return nextToken;
-    }
-
-    //Validate
-    public static void validateToken(int... expectedTokens){
-        
-        for (int expectedToken : expectedTokens){
-            if (nextToken == expectedToken){
-                lex();
-                return;
-            }
-        }
-        if (expectedTokens[0] == RESERVED_INT){
-            throwError(NUMBER);
-        }
-        throwError(expectedTokens[0]);
-    }
-
-     public static void validateToken(int expectedToken){
-        if (nextToken == expectedToken){
-                lex();
-        } else {
-            throwError(expectedToken);
-        }
     }
 
     // Functions
@@ -648,31 +636,33 @@ public class Main {
         //System.out.println(program);
         System.out.printf("Line %d\n",lineNumber);
 
-        if (program.trim().isEmpty()){
-            System.out.println("No Code");
-        } else{
-            try{
-                program = "11a";
-                getNextChar();
-                do{
-                    lex();
-                    System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
-                } while (nextToken != EOF);
-            } catch (RuntimeException e) {
-                System.err.println(e.getMessage());
-            }
-        }
-
+        // Lexical Analyzer Teseter
         // if (program.trim().isEmpty()){
         //     System.out.println("No Code");
         // } else{
-        //     getNextChar();
-        //     lex();
         //     try{
-        //         PROGRAM();
+        //         program = ".0000'";
+        //         getNextChar();
+        //         do{
+        //             lex();
+        //             System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
+        //         } while (nextToken != EOF);
         //     } catch (RuntimeException e) {
         //         System.err.println(e.getMessage());
         //     }
         // }
+
+        // Parser
+        if (program.trim().isEmpty()){
+            System.out.println("No Code");
+        } else{
+            getNextChar();
+            lex();
+            try{
+                PROGRAM();
+            } catch (RuntimeException e) {
+                System.err.println(e.getMessage());
+            }
+        }
     }
 }
