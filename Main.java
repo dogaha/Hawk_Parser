@@ -1,6 +1,7 @@
 import java.io.File;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.ArrayList;
 
 
 public class Main {
@@ -31,11 +32,12 @@ public class Main {
 
     //Symbol Table
     static HashMap<String, String> SYMBOL_TABLE = new HashMap<>();
-
+    static ArrayList<String> tempIDs = new ArrayList<>();
     // Classes
     static final int LETTER = 0;
     static final int DIGIT = 1;
     static final int NUMBER = 2;
+    static final int WHITESPACE = 98;
     static final int UNKNOWN = 99;
 
     // Tokens Code
@@ -104,6 +106,9 @@ public class Main {
                 charClass = LETTER;
             else if (Character.isDigit(nextChar))
                 charClass = DIGIT;
+            else if(Character.isWhitespace(nextChar)){
+                charClass = WHITESPACE;
+            }
             else
                 charClass = UNKNOWN;
         } else {
@@ -386,6 +391,24 @@ public class Main {
         throw new RuntimeException(errorMessage);
     }
 
+    public static void throwError(String error){
+        String errorMessage = "ERROR: LINE " + lineNumber + " : ";
+        switch(error){
+            case "IDENT":
+                errorMessage += "Cannot use character '"+nextChar+"' for Identifier";
+                break;
+            case "NUMBER":
+                errorMessage += "Cannot use character '"+nextChar+"' for Number";
+                break;
+            case "NUMBER_LEN":
+                errorMessage += "Numbers cannot excede 10 digits";
+                break;
+            case "NUMBER_DOT":
+                errorMessage += "Numbers cannot excede 10 digits";
+                break;
+        }
+        throw new RuntimeException(errorMessage);
+    }
     //Lex
     public static int lex(){
         nextLexeme = "";
@@ -407,14 +430,14 @@ public class Main {
                 }else {
                     addCurrentChar();
                     getNextChar();
-                    while ((charClass == LETTER || charClass == DIGIT || nextChar=='_') && charClass!=EOF){
-                        if (nextChar=='_'){
+                    while ((charClass == LETTER || charClass == DIGIT || charClass == UNKNOWN)){
+                        if (charClass==UNKNOWN){
                             lookup(nextChar);
                             if (nextToken == UNDERSCORE){
                                 getNextChar();
                                 continue;
                             } else{
-                                //THROW ERROR
+                                throwError("IDENT");
                             }
                         }
                         addCurrentChar();
@@ -428,29 +451,35 @@ public class Main {
             case DIGIT: // Case of Integer Literal (all Digit)
                 addCurrentChar();
                 getNextChar();
-                while ((charClass == DIGIT || nextChar=='.')&& charClass!=EOF){
+                while ((charClass == DIGIT || charClass == UNKNOWN)){
                     //System.out.println(nextChar);
-                    if (nextChar=='.'){
+                    if (charClass == UNKNOWN){
                         lookup(nextChar);
                         if (nextToken == DOT){
                             getNextChar();
                             continue;
                         } else {
-                            //THROW ERROR INVALID UNKNOWN
+                            throwError("NUMBER");
                         }
                     }
                     addCurrentChar();
                     getNextChar();
                 }
                 int digits = nextLexeme.replaceAll("\\D","").length();
-                if (digits > 10){
-                    //THROW ERROR
-                }
+
                 if (nextLexeme.contains(".")){
+                    if (nextLexeme.length() - nextLexeme.replace(".","").length() > 1) {
+                        throwError("NUMBER_DOT");
+                    }
                     if (digits <= 7){nextToken = FLOAT_LIT;}
                     else {nextToken = DOUBLE_LIT;}
                 } else {
                     nextToken = INT_LIT;
+                }
+
+                if (digits > 10){
+                    //THROW ERROR
+                    throwError("NUMBER_LEN");
                 }
                 break;
                 case EOF:
@@ -459,7 +488,6 @@ public class Main {
                     break;
 
         }
-        System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
         return nextToken;
     }
 
@@ -488,6 +516,7 @@ public class Main {
 
     // Functions
     public static void PROGRAM(){
+        System.out.println("PROGRAM");
         validateToken(RESERVED_PROGRAM);
 
         DECL_SEC();
@@ -495,55 +524,155 @@ public class Main {
         validateToken(RESERVED_BEGIN);
 
         // STATEMENT SECTION
+        STMT_SEC();
+
         validateToken(RESERVED_END);
 
         validateToken(SEMICOLON);
     }
 
     public static void DECL_SEC(){
-        if (nextToken == RESERVED_BEGIN){return;}
+        while (nextToken != RESERVED_BEGIN){
+            System.out.println("DECL_SEC");
+            DECL();
+        }
+    }
+
+    public static void DECL(){
+        System.out.println("DECL");
         ID_LIST();
         validateToken(COLON);
+        String type = nextLexeme;
         validateToken(RESERVED_INT, RESERVED_FLOAT, RESERVED_DOUBLE);
         validateToken(SEMICOLON);
+
+        for (String id : tempIDs){
+            SYMBOL_TABLE.put(id, type);
+        }
+        tempIDs.clear();
     }
 
     public static void ID_LIST(){
-        // ID, ID_LIST
+        System.out.println("ID_LIST");
         validateToken(IDENT);
+        if (tempIDs.contains(nextLexeme) || SYMBOL_TABLE.containsKey(nextLexeme)){
+            //Thorw Error Redeclaration
+        } else{
+            tempIDs.add(nextLexeme);
+        }
         while (nextToken != COLON){
+            System.out.println("ID_LIST");
             validateToken(COMMA);
             validateToken(IDENT);
         }
     }
 
+    public static void STMT_SEC() {
+        while (nextToken != RESERVED_END){
+            System.out.println("STMT_SEC");
+            STMT();
+        }
+    }
+
+    public static void STMT() {
+        System.out.println("STMT");
+        switch (nextToken){
+            case(IDENT):
+                ASSIGN();
+                break;
+            case(RESERVED_IF):
+                IFSTMT();
+                break;
+            case(RESERVED_WHILE):
+                WHILESTMT();
+                break;
+            case(RESERVED_INPUT):
+                INPUT();
+                break;
+            case(RESERVED_OUTPUT):
+                OUTPUT();
+                break;
+            case(RESERVED_CALL):
+                FUNC();
+                break;
+            default:
+                //THROW ERROR
+                break;
+        }
+    }
+
+    public static void ASSIGN() {
+
+    }
+
+    public static void IFSTMT() {
+
+    }
+
+    public static void WHILESTMT() {
+
+    }
+
+    public static void INPUT() {
+
+    }
+
+    public static void OUTPUT() {
+
+    }
+
+    public static void EXPR() {
+
+    }
+
+    public static void FACTOR() {
+
+    }
+
+    public static void OPERAND() {
+
+    }
+
+    public static void COMP() {
+
+    }
+
+    public static void FUNC() {
+
+    }
+
     public static void main(String[] args){
         //[File Name].txt
         program = parseFile("input1.txt");
-        
-        //program = "PISS_MAN_07";
-        System.out.println(program);
+
+        //System.out.println(program);
         System.out.printf("Line %d\n",lineNumber);
+
+        if (program.trim().isEmpty()){
+            System.out.println("No Code");
+        } else{
+            try{
+                program = "11a";
+                getNextChar();
+                do{
+                    lex();
+                    System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
+                } while (nextToken != EOF);
+            } catch (RuntimeException e) {
+                System.err.println(e.getMessage());
+            }
+        }
 
         // if (program.trim().isEmpty()){
         //     System.out.println("No Code");
         // } else{
         //     getNextChar();
-        //     do{
-        //         lex();
-        //     } while (nextToken != EOF);
+        //     lex();
+        //     try{
+        //         PROGRAM();
+        //     } catch (RuntimeException e) {
+        //         System.err.println(e.getMessage());
+        //     }
         // }
-
-        if (program.trim().isEmpty()){
-            System.out.println("No Code");
-        } else{
-            getNextChar();
-            lex();
-            try{
-                PROGRAM();
-            } catch (RuntimeException e) {
-                System.err.println(e.getMessage());
-            }
-        }
     }
 }
