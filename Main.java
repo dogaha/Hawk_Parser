@@ -1,7 +1,9 @@
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
-import java.util.ArrayList;
 
 
 public class Main {
@@ -82,6 +84,7 @@ public class Main {
     static String program = "";
     static int programIndex = 0;
     static int lineNumber = 1;
+    static String programOutput = "";
 
     // Add next char to lexeme
     public static void addCurrentChar(){
@@ -243,10 +246,10 @@ public class Main {
     }
 
     // Put the Program into a single line
-    public static String parseFile(String file){
+    public static String parseFile(String filename){
         String code = "";
         try {
-            Scanner scanner = new Scanner(new File("Input_Files/"+file));
+            Scanner scanner = new Scanner(new File("Input_Files/"+filename+".txt"));
             while (scanner.hasNextLine()){
                 code += scanner.nextLine() + " \n";
             }
@@ -257,6 +260,14 @@ public class Main {
         return code;
     }
     
+    public static void writeFile(String content, String filename){
+        try (FileWriter writer = new FileWriter("Output_Files/"+filename)) {
+            writer.write(content);
+        } catch (IOException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
     //validate if lexeme is not reserved words
     public static Boolean checkReserved(String lexeme){
         for (String s : RESERVED_WORDS ){
@@ -339,7 +350,7 @@ public class Main {
                 break;
 
         }
-        System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
+        //System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
         return nextToken;
     }
 
@@ -358,7 +369,7 @@ public class Main {
         throwError(expectedTokens[0]);
     }
 
-     public static void validateToken(int expectedToken){
+    public static void validateToken(int expectedToken){
         if (nextToken == expectedToken){
                 lex();
         } else {
@@ -366,10 +377,10 @@ public class Main {
         }
     }
 
-
     // Throw Error
     public static void throwError(int expectedToken){
         String errorMessage = "ERROR: LINE " + lineNumber + " : Expected ";
+        
         switch (expectedToken){
             case INT_LIT:
                 errorMessage += "integer literal";
@@ -508,6 +519,12 @@ public class Main {
             case "STMT":
                 errorMessage += "Expected a statement Recieved '"+nextLexeme+"'";
                 break;
+            case "UNDECL":
+                errorMessage += "'"+nextLexeme+"' is an undeclared identifier";
+            case "DECL":
+                errorMessage +=  "'"+nextLexeme+"' is a not a valid identifier name";
+            case "FUNC_PARAM":
+                errorMessage +=  "Expected a number or identifier list Recieved '"+nextLexeme+"'";
         }
         throw new RuntimeException(errorMessage);
     }
@@ -515,6 +532,7 @@ public class Main {
     // Functions
     public static void PROGRAM(){
         System.out.println("PROGRAM");
+        programOutput+="PROGRAM\n";
         validateToken(RESERVED_PROGRAM);
 
         DECL_SEC();
@@ -532,19 +550,27 @@ public class Main {
     public static void DECL_SEC(){
         while (nextToken != RESERVED_BEGIN){
             System.out.println("DECL_SEC");
+            programOutput+="DECL_SEC\n";
             DECL();
         }
     }
 
     public static void DECL(){
         System.out.println("DECL");
-        ID_LIST();
+        programOutput+="DECL\n";
+        ID_LIST(false);
         validateToken(COLON);
         String type = nextLexeme;
         validateToken(RESERVED_INT, RESERVED_FLOAT, RESERVED_DOUBLE);
         validateToken(SEMICOLON);
-
+        
         for (String id : tempIDs){
+            //Check for REDECLARES
+            if (SYMBOL_TABLE.containsKey(id)){
+                String errorMessage = "ERROR: LINE " + lineNumber + " : Identifier";
+                errorMessage += "'"+id+"' has already been declared";
+                throw new RuntimeException(errorMessage);
+            }
             SYMBOL_TABLE.put(id, type);
         }
         // System.out.println("Symbol Table:");
@@ -554,19 +580,31 @@ public class Main {
         tempIDs.clear();
     }
 
-    public static void ID_LIST(){
+    public static void ID_LIST(boolean validate){
         System.out.println("ID_LIST");
-        //Check for REDECLARES
-        if (tempIDs.contains(nextLexeme) || SYMBOL_TABLE.containsKey(nextLexeme)){
-            throwError("REDECL");
-        } else{
+        programOutput+="ID_LIST\n";
+        if (validate == false){
+            //Declaring IDENT
             tempIDs.add(nextLexeme);
-        }
-        validateToken(IDENT);
-
-        if (nextToken != COLON){
-            validateToken(COMMA);
-            ID_LIST();
+            validateToken(IDENT);
+            if (nextToken != COLON){
+                validateToken(COMMA);
+                ID_LIST(validate);
+            }
+        } else {
+            //Using IDENT
+            if (nextToken == IDENT){
+                if (!SYMBOL_TABLE.containsKey(nextLexeme)){
+                    throwError("UNDECL");
+                }
+                lex();
+                if (nextToken != SEMICOLON){
+                    validateToken(COMMA);
+                    ID_LIST(validate);
+                }
+            } else{
+                throwError(IDENT);
+            }
         }
         // while (nextToken != COLON){
         //     System.out.println("ID_LIST");
@@ -585,12 +623,14 @@ public class Main {
     public static void STMT_SEC() {
         while (nextToken != RESERVED_END && nextToken != RESERVED_ELSE){
             System.out.println("STMT_SEC");
+            programOutput+="STMT_SEC\n";
             STMT();
         }
     }
 
     public static void STMT() {
         System.out.println("STMT");
+        programOutput+="STMT\n";
         switch (nextToken){
             case(IDENT):
                 ASSIGN();
@@ -609,6 +649,7 @@ public class Main {
                 break;
             case(RESERVED_CALL):
                 FUNC();
+                validateToken(SEMICOLON);
                 break;
             default:
                 throwError("STMT");
@@ -618,6 +659,7 @@ public class Main {
 
     public static void ASSIGN() {
         System.out.println("ASSIGN");
+        programOutput+="ASSIGN\n";
         validateToken(IDENT);
         validateToken(ASSIGN_OP);
         EXPR();
@@ -626,24 +668,56 @@ public class Main {
 
     public static void IFSTMT() {
         System.out.println("IFSTMT");
+        programOutput+="IFSTMT\n";
         validateToken(RESERVED_IF);
         COMP();
+        validateToken(RESERVED_THEN);
+        if (nextToken == RESERVED_ELSE){
+            lex();
+            STMT_SEC();
+        }
+        validateToken(RESERVED_END);
+        validateToken(RESERVED_IF);
+        validateToken(SEMICOLON);
     }
 
     public static void WHILESTMT() {
         System.out.println("WHILESTMT");
+        programOutput+="WHILESTMT\n";
+        validateToken(RESERVED_WHILE);
+        COMP();
+        validateToken(RESERVED_LOOP);
+        STMT_SEC();
+        validateToken(RESERVED_END);
+        validateToken(RESERVED_LOOP);
+        validateToken(SEMICOLON);
     }
 
     public static void INPUT() {
         System.out.println("INPUT");
+        programOutput+="INPUT\n";
+        validateToken(RESERVED_INPUT);
+        ID_LIST(true);
+        validateToken(SEMICOLON);
     }
 
     public static void OUTPUT() {
         System.out.println("OUTPUT");
+        programOutput+="OUTPUT\n";
+        validateToken(RESERVED_OUTPUT);
+        if (nextToken == IDENT){
+            ID_LIST(true);
+        } else if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT){
+            lex();
+        } else {
+            throwError("FUNC_PARAM"); // nothing valid found
+        }
+        validateToken(SEMICOLON);
     }
 
     public static void EXPR() {
         System.out.println("EXPR");
+        programOutput+="EXPR\n";
         FACTOR();
         if (nextToken == ADD_OP || nextToken == SUB_OP){
             lex();
@@ -653,6 +727,7 @@ public class Main {
 
     public static void FACTOR() {
         System.out.println("FACTOR");
+        programOutput+="FACTOR\n";
         OPERAND();
         if (nextToken == MULT_OP || nextToken == DIV_OP){
             lex();
@@ -662,10 +737,9 @@ public class Main {
 
     public static void OPERAND() {
         System.out.println("OPERAND");
-        if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT) {
+        programOutput+="OPERAND\n";
+        if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT || nextToken == IDENT) {
             lex();
-        } else if (nextToken == IDENT ){
-            //check
         } else if (nextToken == LEFT_PAREN) {
             validateToken(LEFT_PAREN);
             EXPR();
@@ -680,6 +754,7 @@ public class Main {
 
     public static void COMP() {
         System.out.println("COMP");
+        programOutput+="COMP\n";
         validateToken(LEFT_PAREN);
         OPERAND();
         validateToken(EQUALS,NOT_EQUAL,GREATER_THAN,LESS_THAN);
@@ -689,22 +764,25 @@ public class Main {
 
     public static void FUNC() {
         System.out.println("FUNC");
+        programOutput+="FUNC\n";
+        validateToken(RESERVED_CALL);
+        validateToken(IDENT);
+        validateToken(LEFT_PAREN);
+        if (nextToken == IDENT){
+            ID_LIST(true);
+        } else if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT){
+            lex();
+        } else {
+            throwError("FUNC_PARAM"); // nothing valid found
+        }
+        validateToken(RIGHT_PAREN);
     }
 
     public static void main(String[] args){
         //[File Name].txt
-        program = parseFile("input1.txt");
-        program =
-"""
+        String filename = "input1";
+        program = parseFile(filename);
 
-
-program
-begin
-    y:=x+y-a+(101)/(a-b)+>;
-end;
-
-
-""";
         System.out.println(program);
 
         // Lexical Analyzer Teseter
@@ -731,10 +809,12 @@ end;
             lex();
             try{
                 PROGRAM();
-                System.out.println("DONE");
+                writeFile(programOutput,filename)
             } catch (RuntimeException e) {
+                programOutput += e.getMessage() + "\n";
                 System.err.println(e.getMessage());
             }
+
         }
     }
 }
