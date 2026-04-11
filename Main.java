@@ -339,6 +339,7 @@ public class Main {
                 break;
 
         }
+        System.out.printf("Next Token is %d. Next Lexeme is %s\n", nextToken, nextLexeme);
         return nextToken;
     }
 
@@ -501,7 +502,12 @@ public class Main {
             case "REDECL":
                 errorMessage += "'"+nextLexeme+"' has already been declared";
                 break;
-
+            case "OPERAND":
+                errorMessage += "Expected a number, identifier, ( EXPRESSION ), or function Recieved '"+nextLexeme+"'";
+                break;
+            case "STMT":
+                errorMessage += "Expected a statement Recieved '"+nextLexeme+"'";
+                break;
         }
         throw new RuntimeException(errorMessage);
     }
@@ -577,7 +583,7 @@ public class Main {
     }
 
     public static void STMT_SEC() {
-        while (nextToken != RESERVED_END){
+        while (nextToken != RESERVED_END && nextToken != RESERVED_ELSE){
             System.out.println("STMT_SEC");
             STMT();
         }
@@ -605,7 +611,7 @@ public class Main {
                 FUNC();
                 break;
             default:
-                //THROW ERROR
+                throwError("STMT");
                 break;
         }
     }
@@ -620,6 +626,8 @@ public class Main {
 
     public static void IFSTMT() {
         System.out.println("IFSTMT");
+        validateToken(RESERVED_IF);
+        COMP();
     }
 
     public static void WHILESTMT() {
@@ -637,8 +645,8 @@ public class Main {
     public static void EXPR() {
         System.out.println("EXPR");
         FACTOR();
-        if (nextToken != SEMICOLON){
-            validateToken(ADD_OP, SUB_OP);
+        if (nextToken == ADD_OP || nextToken == SUB_OP){
+            lex();
             EXPR();
         }
     }
@@ -646,16 +654,18 @@ public class Main {
     public static void FACTOR() {
         System.out.println("FACTOR");
         OPERAND();
-        if (nextToken != SEMICOLON && nextToken != ADD_OP && nextToken != SUB_OP){
-            validateToken(MULT_OP, DIV_OP);
+        if (nextToken == MULT_OP || nextToken == DIV_OP){
+            lex();
             FACTOR();
         }
     }
 
     public static void OPERAND() {
         System.out.println("OPERAND");
-        if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT || nextToken == IDENT) {
-            validateToken(INT_LIT, FLOAT_LIT, DOUBLE_LIT,IDENT);
+        if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT) {
+            lex();
+        } else if (nextToken == IDENT ){
+            //check
         } else if (nextToken == LEFT_PAREN) {
             validateToken(LEFT_PAREN);
             EXPR();
@@ -670,6 +680,11 @@ public class Main {
 
     public static void COMP() {
         System.out.println("COMP");
+        validateToken(LEFT_PAREN);
+        OPERAND();
+        validateToken(EQUALS,NOT_EQUAL,GREATER_THAN,LESS_THAN);
+        OPERAND();
+        validateToken(RIGHT_PAREN);
     }
 
     public static void FUNC() {
@@ -683,10 +698,9 @@ public class Main {
 """
 
 
-program    x, y: int;
-
+program
 begin
-    y:=x+y-a;
+    y:=x+y-a+(101)/(a-b)+>;
 end;
 
 
@@ -717,7 +731,7 @@ end;
             lex();
             try{
                 PROGRAM();
-                System.out.println("DONE")
+                System.out.println("DONE");
             } catch (RuntimeException e) {
                 System.err.println(e.getMessage());
             }
