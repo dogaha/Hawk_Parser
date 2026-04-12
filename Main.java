@@ -784,7 +784,7 @@ public class Main {
     }
 
     public static void main(String[] args){
-        String filename = "input1"; // <-------- EDIT THE FILE NAME
+        String filename = "input7"; // <-------- EDIT THE FILE NAME
         program = parseFile(filename); // <-------- OR HARDCODE PROGRAM
 
         System.out.println(program);
