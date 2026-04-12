@@ -31,4 +31,4 @@ FACTOR
 OPERAND
 FACTOR
 OPERAND
-ERROR !! identifier not declared in Line 9.
+ERROR: LINE 9 : 'y' is an undeclared identifier

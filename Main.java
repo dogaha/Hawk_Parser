@@ -5,9 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-import javax.print.DocFlavor.STRING;
-
-
 public class Main {
     //Global Declarations
     //Variables
@@ -95,7 +92,10 @@ public class Main {
 
     //Check next Character
     public static char checkCurrentChar(){
-        return program.charAt(programIndex);
+        if (programIndex < program.length()){
+            return program.charAt(programIndex);
+        }
+        return '\0';
     }
 
     //set next character to the next char
@@ -516,13 +516,13 @@ public class Main {
         String errorMessage = "ERROR: LINE " + lineNumber + " : ";
         switch(error){
             case "NUMBER_LEN":
-                errorMessage += "Numbers cannot excede 10 digits, '" +nextLexeme+"'";
+                errorMessage += "Numbers cannot exceed 10 digits, '" +nextLexeme+"'";
                 break;
             case "NUMBER_DOT":
                 errorMessage += "Numbers can only have one decimal, '"+nextLexeme+"'";
                 break;
             case "CHAR":
-                errorMessage += "'"+nextChar+" is not a useable character";
+                errorMessage += "'"+nextChar+"' is not a useable character";
                 break;
             case "REDECL":
                 errorMessage += "'"+nextLexeme+"' has already been declared";
@@ -565,7 +565,7 @@ public class Main {
     }
 
     public static void DECL_SEC(){
-        while (nextToken != RESERVED_BEGIN){
+        while (nextToken != RESERVED_BEGIN && nextToken != EOF){
             System.out.println("DECL_SEC");
             programOutput+="DECL_SEC\n";
             DECL();
@@ -584,8 +584,7 @@ public class Main {
         for (String id : tempIDs){
             //Check for REDECLARES
             if (SYMBOL_TABLE.containsKey(id)){
-                String errorMessage = "ERROR: LINE " + lineNumber + " : Identifier";
-                errorMessage += "'"+id+"' has already been declared";
+                String errorMessage = "ERROR: LINE " + lineNumber + " : Identifier '"+id+"' has already been declared";
                 throw new RuntimeException(errorMessage);
             }
             SYMBOL_TABLE.put(id, type);
@@ -596,7 +595,7 @@ public class Main {
     public static void ID_LIST(String function){
         System.out.println("ID_LIST");
         programOutput+="ID_LIST\n";
-        if (function == "DECL"){
+        if (function.equals("DECL")){
             //Declaring IDENT
             tempIDs.add(nextLexeme);
             validateToken(IDENT);
@@ -604,14 +603,14 @@ public class Main {
                 validateToken(COMMA);
                 ID_LIST(function);
             }
-        } else if (function == "INPUT" || function == "OUTPUT") {
+        } else if (function.equals("INPUT") || function.equals("OUTPUT")) {
             //Using IDENT
             validateIDENT();
             if (nextToken != SEMICOLON){
                 validateToken(COMMA);
                 ID_LIST(function);
             }
-        } else if (function == "FUNC"){
+        } else if (function.equals("FUNC")){
             validateIDENT();
             if (nextToken != RIGHT_PAREN){
                 validateToken(COMMA);
@@ -782,7 +781,7 @@ public class Main {
     }
 
     public static void main(String[] args){
-        String filename = "Test";
+        String filename = "input7";
         program = parseFile(filename);
 
         System.out.println(program);

@@ -51,4 +51,4 @@ OPERAND
 EXPR
 FACTOR
 OPERAND
-ERROR !! Semicolon missing in Line 14.
+ERROR: LINE 14 : Expected ';' Received 'else'

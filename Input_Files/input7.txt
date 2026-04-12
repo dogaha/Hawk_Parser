@@ -1,0 +1,19 @@
+program 
+  x, p : int;
+  r : int;
+begin
+  input x, p;
+  if (p>call myFunction(p)) then
+   while (p >1) 
+   loop
+     x := x *x;
+     p := p -1;
+   end loop;
+   r := x;
+  else
+    r := 1;
+  end if;
+  call myFunction(100.0);
+  call myFunction(a)
+  output r,x,p;
+end;
