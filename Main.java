@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
+import javax.print.DocFlavor.STRING;
+
 
 public class Main {
     //Global Declarations
@@ -506,7 +508,7 @@ public class Main {
                 errorMessage = "Unknown token";
                 break;
         }
-        errorMessage += " Recieved "+nextLexeme;
+        errorMessage += " Received '"+nextLexeme+"'";
         throw new RuntimeException(errorMessage);
     }
 
@@ -514,22 +516,22 @@ public class Main {
         String errorMessage = "ERROR: LINE " + lineNumber + " : ";
         switch(error){
             case "NUMBER_LEN":
-                errorMessage += "Numbers cannot excede 10 digits, " +nextLexeme;
+                errorMessage += "Numbers cannot excede 10 digits, '" +nextLexeme+"'";
                 break;
             case "NUMBER_DOT":
-                errorMessage += "Numbers can only have one decimal, "+nextLexeme;
+                errorMessage += "Numbers can only have one decimal, '"+nextLexeme+"'";
                 break;
             case "CHAR":
-                errorMessage += ""+nextChar+" is not a useable character";
+                errorMessage += "'"+nextChar+" is not a useable character";
                 break;
             case "REDECL":
                 errorMessage += "'"+nextLexeme+"' has already been declared";
                 break;
             case "OPERAND":
-                errorMessage += "Expected a number, identifier, ( EXPRESSION ), or function Recieved '"+nextLexeme+"'";
+                errorMessage += "Expected a number, identifier, ( EXPRESSION ), or function Received '"+nextLexeme+"'";
                 break;
             case "STMT":
-                errorMessage += "Expected a statement Recieved '"+nextLexeme+"'";
+                errorMessage += "Expected a statement Received '"+nextLexeme+"'";
                 break;
             case "UNDECL":
                 errorMessage += "'"+nextLexeme+"' is an undeclared identifier";
@@ -538,7 +540,7 @@ public class Main {
                 errorMessage +=  "'"+nextLexeme+"' is a not a valid identifier name";
                 break;
             case "FUNC_PARAM":
-                errorMessage +=  "Expected a number or identifier list Recieved '"+nextLexeme+"'";
+                errorMessage +=  "Expected a number or identifier list Received '"+nextLexeme+"'";
                 break;
         }
         throw new RuntimeException(errorMessage);
@@ -573,7 +575,7 @@ public class Main {
     public static void DECL(){
         System.out.println("DECL");
         programOutput+="DECL\n";
-        ID_LIST(false);
+        ID_LIST("DECL");
         validateToken(COLON);
         String type = nextLexeme;
         validateToken(RESERVED_INT, RESERVED_FLOAT, RESERVED_DOUBLE);
@@ -588,44 +590,34 @@ public class Main {
             }
             SYMBOL_TABLE.put(id, type);
         }
-        // System.out.println("Symbol Table:");
-        // for (HashMap.Entry<String, String> entry : SYMBOL_TABLE.entrySet()) {
-        //     System.out.printf("  %-15s -> %s\n", entry.getKey(), entry.getValue());
-        // }
         tempIDs.clear();
     }
 
-    public static void ID_LIST(boolean validate){
+    public static void ID_LIST(String function){
         System.out.println("ID_LIST");
         programOutput+="ID_LIST\n";
-        if (validate == false){
+        if (function == "DECL"){
             //Declaring IDENT
             tempIDs.add(nextLexeme);
             validateToken(IDENT);
             if (nextToken != COLON){
                 validateToken(COMMA);
-                ID_LIST(validate);
+                ID_LIST(function);
             }
-        } else {
+        } else if (function == "INPUT" || function == "OUTPUT") {
             //Using IDENT
             validateIDENT();
             if (nextToken != SEMICOLON){
                 validateToken(COMMA);
-                ID_LIST(validate);
+                ID_LIST(function);
+            }
+        } else if (function == "FUNC"){
+            validateIDENT();
+            if (nextToken != RIGHT_PAREN){
+                validateToken(COMMA);
+                ID_LIST(function);
             }
         }
-        // while (nextToken != COLON){
-        //     System.out.println("ID_LIST");
-        //     validateToken(COMMA);
-
-        //     //Check for REDECLARES
-        //     if (tempIDs.contains(nextLexeme) || SYMBOL_TABLE.containsKey(nextLexeme)){
-        //         throwError("REDECL");
-        //     } else{
-        //         tempIDs.add(nextLexeme);
-        //     }
-        //     validateToken(IDENT);
-        // }
     }
 
     public static void STMT_SEC() {
@@ -706,7 +698,7 @@ public class Main {
         System.out.println("INPUT");
         programOutput+="INPUT\n";
         validateToken(RESERVED_INPUT);
-        ID_LIST(true);
+        ID_LIST("INPUT");
         validateToken(SEMICOLON);
     }
 
@@ -715,7 +707,7 @@ public class Main {
         programOutput+="OUTPUT\n";
         validateToken(RESERVED_OUTPUT);
         if (nextToken == IDENT){
-            ID_LIST(true);
+            ID_LIST("OUTPUT");
         } else if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT){
             lex();
         } else {
@@ -777,10 +769,10 @@ public class Main {
         System.out.println("FUNC");
         programOutput+="FUNC\n";
         validateToken(RESERVED_CALL);
-        validateIDENT();
+        validateToken(IDENT);
         validateToken(LEFT_PAREN);
         if (nextToken == IDENT){
-            ID_LIST(true);
+            ID_LIST("FUNC");
         } else if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT){
             lex();
         } else {
@@ -790,8 +782,7 @@ public class Main {
     }
 
     public static void main(String[] args){
-        //[File Name].txt
-        String filename = "input6";
+        String filename = "Test";
         program = parseFile(filename);
 
         System.out.println(program);
@@ -812,7 +803,7 @@ public class Main {
         //     }
         // }
 
-        //Parser
+        // Parser Tester
         if (program.trim().isEmpty()){
             System.out.println("No Code");
         } else{
