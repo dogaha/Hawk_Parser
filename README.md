@@ -1,33 +1,21 @@
 # Hawk_Parser
 ### CSCI 4355 - Programming Language Concepts | Spring 2026
 
-A scanner and recursive descent parser called Hawk Program, implemnented in java
+A scanner and recursive descent parser called Hawk Program, implemnented in java. See the last section for an explaination and or application of the rules.
 
-## Symbol Table
-The symbol table is implemented using a HASHMAP<String, String>. After each DECL_SEC, the identifiers declared (which are stored in an array list called "tempIDs") are inserted into the HASHMAP; if and only if the identifier is not already a key within it.
-
-## Error Handling
-In the case of an error occuring within the program, the parser will break out and return the error within the output. 
-
-For the Illegal Identifier handling, the parser is built such that it will not recognize an illegal identifier because it avoids it, passing the responsibility to the Parse Error handler. This is done during the lexical analyzer portion, which assigns tokens using the rules / reserved words table. Hence there being no error for identfiers since the only error for one is when ther is number for the first character (splits into two lexemes) and is a reserved word. 
-### Example
-- lexeme 20.1myVar will return the FLOAT_LIT token for 20.1 then the IDENT token for myVar
-- lexeme program will return the token RESERVED_WORD
-- lexeme .myVar will return the DOT token and IDENT Token for myVar
-
-### Errors handled
-
-
-| Error | Description |
-|---|---|
-| Illegal symbol | Character not part of the language |
-| Illegal identifier | N/A, not handled normally |.
-| Illegal number | Number exceeds 10 digits, has multiple decimals, or a digit does not follow after dot |
-| Redeclaration | Variable declared more than once during the DECL_SEC function|
-| Undeclared identifier | Variable used before being declared when the variable is used and is not a key within the SYMBOL_TABLE |
-| Parse error | Token sequence does not match grammar, Expected x Received Y |
- 
-
+---
+## Project Structure
+```
+TERMPROJECT/
+|── Main.java
+├── Input_Files/
+│   ├── input1.txt
+│   └── ...
+├── Output_Files/
+│   ├── output_input1.txt
+│   └── ...
+└── README.md
+```
 ---
 ## How to Run
 
@@ -35,7 +23,7 @@ For the Illegal Identifier handling, the parser is built such that it will not r
 
 2. Within the main function of the main file set the variable "filename" equal to the the name of the desired file to run. Alternatively you can hard code the source code to the variable "program".
 
-3. After running the output of will be sent out as a .txt file within the Output_Files folder. The name of the output will be this: "output_\[filename].txt"
+3. After running the output of will be sent out as a .txt file within the Output_Files folder, this is done through the writeFile function which automatically runs after the parser finishes / breaks out. The name of the output file is this: "output_\[filename].txt"
 
 ---
 ## Example
@@ -168,7 +156,7 @@ Rule 19: FUNC → call ID( ID_LIST ) |
 ```
 
 
-## Reserved Words
+### Reserved Words
 `program`, `begin`, `end`, `if`, `then`, `else`, `input`, `output`, `while`, `loop`, `int`, `float`, `double`, `call`
  
 ### Operators
@@ -183,31 +171,9 @@ Greater Than    | >
 Equals          | =
 Not Equals      | <> 
 ```
- 
-### Numbers
-- **Integer** — up to 10 digits, no decimal point
-- **Float** — up to 7 significant digits with a decimal point
-- **Double** — 8 to 10 significant digits with a decimal point
- 
-### Identifiers
-- Must start with a letter or underscore
-- Can contain letters, digits, and underscores
-- Cannot be a reserved word
 
-## Structure
-```
-TERMPROJECT/
-|── Main.java
-├── Input_Files/
-│   ├── input1.txt
-│   └── ...
-├── Output_Files/
-│   ├── output_input1.txt
-│   └── ...
-└── README.md
-```
 
-## Tokens
+### Tokens
 | Token | Code |
 |---|---|
 | INT_LIT | 10 |
@@ -242,4 +208,45 @@ TERMPROJECT/
 | KEY_FLOAT | 51 |
 | KEY_DOUBLE | 52 |
 | KEY_CALL | 53 |
+
+---
+## Explaination and Aplication
+
+### Numbers
+- **Integer** — up to 10 digits, no decimal point
+- **Float** — up to 7 significant digits with a decimal point
+- **Double** — 8 to 10 significant digits with a decimal point
+- Any time there is a decimal point, there has to be a number before and after it
+ 
+### Identifiers
+- Must start with a letter or underscore
+- Can contain letters, digits, and underscores
+- Cannot be a reserved word
+
+### Symbol Table
+The symbol table is implemented using a HASHMAP<String, String>. After each DECL_SEC, the identifiers declared (which are stored in an array list called "tempIDs") are inserted into the HASHMAP; if and only if the identifier is not already a key within it.
+
+### Error Handling
+In the case of an error occuring within the program, the parser will break out and return the error within the output. 
+
+For the Illegal Identifier handling, the parser is built such that it will not recognize an illegal identifier because it avoids it, passing the responsibility to the Parse Error handler. This is done during the lexical analyzer portion, which assigns tokens using the rules / reserved words table. Hence there being no error for identfiers since the only error for one is when ther is number for the first character (splits into two lexemes) and is a reserved word. 
+#### Example
+- lexeme 20.1myVar will return the FLOAT_LIT token for 20.1 then the IDENT token for myVar
+- lexeme program will return the token RESERVED_WORD
+- lexeme .myVar will return the DOT token and IDENT Token for myVar
+
+### Errors handled
+
+
+| Error | Description |
+|---|---|
+| Illegal symbol | Character not part of the language |
+| Illegal identifier | N/A, not handled normally |.
+| Illegal number | Number exceeds 10 digits, has multiple decimals, or a digit does not follow after dot |
+| Redeclaration | Variable declared more than once during the DECL_SEC function|
+| Undeclared identifier | Variable used before being declared when the variable is used and is not a key within the SYMBOL_TABLE |
+| Parse error | Token sequence does not match grammar, Expected x Received Y |
+ 
+
+---
 
