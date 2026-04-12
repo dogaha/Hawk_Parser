@@ -261,7 +261,7 @@ public class Main {
     }
     
     public static void writeFile(String content, String filename){
-        try (FileWriter writer = new FileWriter("Output_Files/"+filename)) {
+        try (FileWriter writer = new FileWriter("Output_Files/"+"output_"+filename+".txt")) {
             writer.write(content);
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
@@ -377,6 +377,18 @@ public class Main {
         }
     }
 
+    public static void validateIDENT(){
+        if (nextToken == IDENT){
+            //System.out.print(nextLexeme+" | ");
+            //System.out.println(SYMBOL_TABLE.containsKey(nextLexeme));
+            if (!SYMBOL_TABLE.containsKey(nextLexeme)){
+                throwError("UNDECL");
+            }
+            lex();
+        } else {
+            throwError(IDENT);
+        }
+    }
     // Throw Error
     public static void throwError(int expectedToken){
         String errorMessage = "ERROR: LINE " + lineNumber + " : Expected ";
@@ -521,10 +533,13 @@ public class Main {
                 break;
             case "UNDECL":
                 errorMessage += "'"+nextLexeme+"' is an undeclared identifier";
+                break;
             case "DECL":
                 errorMessage +=  "'"+nextLexeme+"' is a not a valid identifier name";
+                break;
             case "FUNC_PARAM":
                 errorMessage +=  "Expected a number or identifier list Recieved '"+nextLexeme+"'";
+                break;
         }
         throw new RuntimeException(errorMessage);
     }
@@ -593,17 +608,10 @@ public class Main {
             }
         } else {
             //Using IDENT
-            if (nextToken == IDENT){
-                if (!SYMBOL_TABLE.containsKey(nextLexeme)){
-                    throwError("UNDECL");
-                }
-                lex();
-                if (nextToken != SEMICOLON){
-                    validateToken(COMMA);
-                    ID_LIST(validate);
-                }
-            } else{
-                throwError(IDENT);
+            validateIDENT();
+            if (nextToken != SEMICOLON){
+                validateToken(COMMA);
+                ID_LIST(validate);
             }
         }
         // while (nextToken != COLON){
@@ -660,18 +668,19 @@ public class Main {
     public static void ASSIGN() {
         System.out.println("ASSIGN");
         programOutput+="ASSIGN\n";
-        validateToken(IDENT);
+        validateIDENT();
         validateToken(ASSIGN_OP);
         EXPR();
         validateToken(SEMICOLON);
     }
 
     public static void IFSTMT() {
-        System.out.println("IFSTMT");
-        programOutput+="IFSTMT\n";
+        System.out.println("IF_STMT");
+        programOutput+="IF_STMT\n";
         validateToken(RESERVED_IF);
         COMP();
         validateToken(RESERVED_THEN);
+        STMT_SEC();
         if (nextToken == RESERVED_ELSE){
             lex();
             STMT_SEC();
@@ -682,8 +691,8 @@ public class Main {
     }
 
     public static void WHILESTMT() {
-        System.out.println("WHILESTMT");
-        programOutput+="WHILESTMT\n";
+        System.out.println("WHILE_STMT");
+        programOutput+="WHILE_STMT\n";
         validateToken(RESERVED_WHILE);
         COMP();
         validateToken(RESERVED_LOOP);
@@ -738,9 +747,11 @@ public class Main {
     public static void OPERAND() {
         System.out.println("OPERAND");
         programOutput+="OPERAND\n";
-        if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT || nextToken == IDENT) {
+        if (nextToken == INT_LIT || nextToken == FLOAT_LIT || nextToken == DOUBLE_LIT) {
             lex();
-        } else if (nextToken == LEFT_PAREN) {
+        } else if(nextToken == IDENT){
+            validateIDENT();
+        }else if (nextToken == LEFT_PAREN) {
             validateToken(LEFT_PAREN);
             EXPR();
             validateToken(RIGHT_PAREN);
@@ -766,7 +777,7 @@ public class Main {
         System.out.println("FUNC");
         programOutput+="FUNC\n";
         validateToken(RESERVED_CALL);
-        validateToken(IDENT);
+        validateIDENT();
         validateToken(LEFT_PAREN);
         if (nextToken == IDENT){
             ID_LIST(true);
@@ -780,7 +791,7 @@ public class Main {
 
     public static void main(String[] args){
         //[File Name].txt
-        String filename = "input1";
+        String filename = "input6";
         program = parseFile(filename);
 
         System.out.println(program);
@@ -809,11 +820,11 @@ public class Main {
             lex();
             try{
                 PROGRAM();
-                writeFile(programOutput,filename)
             } catch (RuntimeException e) {
                 programOutput += e.getMessage() + "\n";
                 System.err.println(e.getMessage());
             }
+            writeFile(programOutput,filename);
 
         }
     }
