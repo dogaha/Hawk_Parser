@@ -287,7 +287,7 @@ public class Main {
         switch (charClass){
             case UNKNOWN:
                 lookup(nextChar);
-                if (nextToken == UNDERSCORE || nextToken == DOT){
+                if (nextToken == UNDERSCORE){
                     getNextChar();
                 }else{
                     getNextChar();
@@ -296,8 +296,6 @@ public class Main {
             case(LETTER): // Case of Indentifier
                 if (charClass == EOF){
                     break;
-                } else if (nextToken == DOT){
-                    //MOVE DOWN TO DIGIT
                 }else {
                     addCurrentChar();
                     getNextChar();
@@ -318,28 +316,30 @@ public class Main {
                     break;   
                 }
             case DIGIT: // Case of Integer Literal (all Digit)
+                boolean hasDot = false;
+                int digits = 0;
                 addCurrentChar();
                 getNextChar();
-                while ((charClass == DIGIT || nextChar=='.')&& charClass!=EOF){
+                digits++;
+                while ((charClass == DIGIT || nextChar=='.') && charClass!=EOF){
                     //System.out.println(nextChar);
                     if (nextChar=='.'){
+                        if (hasDot){}
                         lookup(nextChar);
                         if (nextToken == DOT){
+                            hasDot = true;
                             getNextChar();
+                            if (charClass != DIGIT){throwError("NUMBER_DOT_FOLLOW");}
                             continue;
-                        }
+                        } else {throwError("NUMBER_DOT");}
                     }
                     addCurrentChar();
                     getNextChar();
+                    digits++;
+                    if (digits > 10){throwError("NUMBER_LEN");}
                 }
-                int digits = nextLexeme.replaceAll("\\D","").length();
-                if (digits > 10){
-                    throwError("NUMBER_LEN");
-                }
-                if (nextLexeme.contains(".")){
-                    if (nextLexeme.length() - nextLexeme.replace(".","").length()>1){
-                        throwError("NUMBER_DOT");
-                    }
+
+                if (hasDot){
                     if (digits <= 7){nextToken = FLOAT_LIT;}
                     else {nextToken = DOUBLE_LIT;}
                 } else {
@@ -520,6 +520,9 @@ public class Main {
                 break;
             case "NUMBER_DOT":
                 errorMessage += "Numbers can only have one decimal, '"+nextLexeme+"'";
+                break;
+            case "NUMBER_DOT_FOLLOW":
+                errorMessage += "There must be a digit following a dot, Recieved '"+nextChar+"'";
                 break;
             case "CHAR":
                 errorMessage += "'"+nextChar+"' is not a useable character";
@@ -781,8 +784,8 @@ public class Main {
     }
 
     public static void main(String[] args){
-        String filename = "input7";
-        program = parseFile(filename);
+        String filename = "input1"; // <-------- EDIT THE FILE NAME
+        program = parseFile(filename); // <-------- OR HARDCODE PROGRAM
 
         System.out.println(program);
 
